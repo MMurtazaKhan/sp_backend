@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 import random
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/simulate": {"origins": "http://localhost:3000"}})
 
 def monte_carlo_simulation(credit_score):
     results = []
