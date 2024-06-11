@@ -185,4 +185,4 @@ def simulate_health_insurance():
 
 
 if __name__ == '_main_':
-    app.run(debug=True)
+    app.run(debug=False)
