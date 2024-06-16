@@ -1,23 +1,11 @@
 from flask import Flask, request, jsonify
-import random
 from flask_cors import CORS
-import numpy as np
+import random
 
 app = Flask(__name__)
-CORS(app, resources={r"/simulate": {"origins": "http://localhost:3000"}})
+CORS(app)
 
-def monte_carlo_simulation(credit_score):
-    results = []
-    base_default_rate = 0.05  # Base default rate without any modification
-    for _ in range(100):  # Number of simulations
-        # Random factor to simulate variability in default rate
-        variability = random.gauss(0, 0.01)
-        # Adjust default rate based on credit score
-        adjusted_default_rate = base_default_rate * (650 / credit_score) + variability
-        results.append(max(0, min(1, adjusted_default_rate)))  # Ensure rate is between 0 and 1
-    # Return the average result of simulations
-    return sum(results) / len(results)
-
+# API 1: Basic Credit Score Simulation
 @app.route('/simulate', methods=['POST'])
 def simulate():
     data = request.json
@@ -25,164 +13,138 @@ def simulate():
     default_probability = monte_carlo_simulation(credit_score)
     return jsonify(default_probability=default_probability)
 
-# Second API
-def macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years):
+def monte_carlo_simulation(credit_score):
     results = []
-    base_default_rate = 0.05  # Base default rate without any modification
-    for _ in range(num_simulations):  # Number of simulations
-        yearly_results = []
-        for _ in range(num_years):
-            # Randomly generate macroeconomic factors
-            unemployment_rate = np.random.normal(loc=5.0, scale=1.5)
-            inflation_rate = np.random.normal(loc=2.0, scale=0.5)
-            gdp_growth_rate = np.random.normal(loc=3.0, scale=1.0)
-            
-            # Factor in macroeconomic conditions to adjust the default rate
-            macro_factor = 1 + (unemployment_rate / 100) - (inflation_rate / 100) + (gdp_growth_rate / 100)
-            variability = random.gauss(0, 0.01)
-            adjusted_default_rate = base_default_rate * (650 / credit_score) * macro_factor + variability
-            yearly_results.append(max(0, min(1, adjusted_default_rate)))  # Ensure rate is between 0 and 1
-        
-        # Average yearly results for this simulation
-        results.append(sum(yearly_results) / num_years)
-    # Return the average result of all simulations
+    base_default_rate = 0.05
+    for _ in range(100):
+        variability = random.gauss(0, 0.01)
+        adjusted_default_rate = base_default_rate * (650 / credit_score) + variability
+        results.append(max(0, min(1, adjusted_default_rate)))
     return sum(results) / len(results)
 
+# API 2: Credit Risk Based on Macroeconomic Factors
 @app.route('/simulate_macroeconomic_factors', methods=['POST'])
 def simulate_macroeconomic_factors():
     data = request.get_json()
-    
-    # Parameters
     credit_score = data['credit_score']
     num_simulations = data.get('num_simulations', 1000)
     num_years = data.get('num_years', 5)
-    
-    # Simulate default probability based on macroeconomic factors
-    default_probability = macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years)
-    
-    return jsonify(default_probability=default_probability)
+    projected_credit_scores = macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years)
+    return jsonify(projected_credit_scores=projected_credit_scores)
 
+def macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years):
+    results = []
+    for _ in range(num_simulations):
+        yearly_scores = []
+        for _ in range(num_years):
+            unemployment_rate = random.uniform(0.03, 0.1)
+            inflation_rate = random.uniform(0.01, 0.04)
+            gdp_growth_rate = random.uniform(0.01, 0.05)
+            macro_factor = unemployment_rate + inflation_rate - gdp_growth_rate
+            variability = random.gauss(0, 0.01)
+            adjusted_score = credit_score * (1 - macro_factor) + variability * 100
+            yearly_scores.append(max(300, min(850, adjusted_score)))
+        results.append(yearly_scores)
+    return results
 
-# Third API
+# API 3: Financial Behavior Simulation
 @app.route('/simulate_financial_behavior', methods=['POST'])
 def simulate_financial_behavior():
     data = request.get_json()
-    
     credit_score = data['credit_score']
-    spending_habits = data['spending_habits']  # scale of 1 to 10
-    payment_history = data['payment_history']  # percentage of on-time payments
-    debt_to_income_ratio = data['debt_to_income_ratio']  # percentage
-    
-    def financial_behavior_simulation(credit_score, spending_habits, payment_history, debt_to_income_ratio):
-        results = []
-        base_default_rate = 0.05
-        for _ in range(100):
-            variability = random.gauss(0, 0.01)
-            adjusted_default_rate = base_default_rate * (650 / credit_score) * (10 / spending_habits) * (1 / payment_history) * (debt_to_income_ratio / 100) + variability
-            results.append(max(0, min(1, adjusted_default_rate)))
-        return sum(results) / len(results)
-    
-    default_probability = financial_behavior_simulation(credit_score, spending_habits, payment_history, debt_to_income_ratio)
-    return jsonify(default_probability=default_probability)
+    spending_habits = data['spending_habits']
+    payment_history = data['payment_history']
+    debt_to_income_ratio = data['debt_to_income_ratio']
+    risk_category_distribution = financial_behavior_simulation(credit_score, spending_habits, payment_history, debt_to_income_ratio)
+    return jsonify(risk_category_distribution=risk_category_distribution)
 
+def financial_behavior_simulation(credit_score, spending_habits, payment_history, debt_to_income_ratio):
+    categories = {'low': 0, 'medium': 0, 'high': 0}
+    for _ in range(100):
+        risk_score = (credit_score / 850) * 0.4 + (payment_history / 100) * 0.3 - (debt_to_income_ratio / 100) * 0.2 + (spending_habits / 10) * 0.1
+        if risk_score > 0.7:
+            categories['low'] += 1
+        elif risk_score > 0.4:
+            categories['medium'] += 1
+        else:
+            categories['high'] += 1
+    return categories
 
-# Fourth API
+# API 4: Employment Status Simulation
 @app.route('/simulate_employment_status', methods=['POST'])
 def simulate_employment_status():
     data = request.get_json()
-    
     credit_score = data['credit_score']
-    job_stability = data['job_stability']  # scale of 1 to 10
-    income_level = data['income_level']  # annual income
-    employment_type = data['employment_type']  # full-time, part-time, self-employed, unemployed
-    
-    def employment_status_simulation(credit_score, job_stability, income_level, employment_type):
-        results = []
-        base_default_rate = 0.05
-        employment_factor = {'full-time': 1, 'part-time': 1.2, 'self-employed': 1.5, 'unemployed': 2}
-        for _ in range(100):
-            variability = random.gauss(0, 0.01)
-            adjusted_default_rate = base_default_rate * (650 / credit_score) * (10 / job_stability) * (1 / income_level) * employment_factor[employment_type] + variability
-            results.append(max(0, min(1, adjusted_default_rate)))
-        return sum(results) / len(results)
-    
-    default_probability = employment_status_simulation(credit_score, job_stability, income_level, employment_type)
-    return jsonify(default_probability=default_probability)
+    job_stability = data['job_stability']
+    income_level = data['income_level']
+    employment_type = data['employment_type']
+    income_projection = employment_status_simulation(credit_score, job_stability, income_level, employment_type)
+    return jsonify(income_projection=income_projection)
 
+def employment_status_simulation(credit_score, job_stability, income_level, employment_type):
+    income_projection = []
+    base_growth_rate = 0.02  # Base growth rate of income per year
+    stability_factor = job_stability / 10  # Job stability affects income stability
+    type_factor = 1 if employment_type == 'full-time' else 0.8 if employment_type == 'part-time' else 1.2 if employment_type == 'self-employed' else 0.5
+    for _ in range(5):  # Simulate income for 5 years
+        growth_rate = base_growth_rate * stability_factor * type_factor
+        income_level += income_level * growth_rate
+        income_projection.append(income_level)
+    return income_projection
 
-# Fifth API
+# API 5: Geographic Location Simulation
 @app.route('/simulate_geographic_location', methods=['POST'])
 def simulate_geographic_location():
     data = request.get_json()
-    
     credit_score = data['credit_score']
-    region = data['region']  # e.g., 'urban', 'suburban', 'rural'
-    housing_market_trends = data['housing_market_trends']  # scale of 1 to 10
-    regional_unemployment_rate = data['regional_unemployment_rate']  # percentage
-    
-    def geographic_location_simulation(credit_score, region, housing_market_trends, regional_unemployment_rate):
-        results = []
-        base_default_rate = 0.05
-        region_factor = {'urban': 1, 'suburban': 1.1, 'rural': 1.3}
-        for _ in range(100):
-            variability = random.gauss(0, 0.01)
-            adjusted_default_rate = base_default_rate * (650 / credit_score) * region_factor[region] * (10 / housing_market_trends) * (regional_unemployment_rate / 100) + variability
-            results.append(max(0, min(1, adjusted_default_rate)))
-        return sum(results) / len(results)
-    
-    default_probability = geographic_location_simulation(credit_score, region, housing_market_trends, regional_unemployment_rate)
-    return jsonify(default_probability=default_probability)
+    region = data['region']
+    housing_market_trends = data['housing_market_trends']
+    regional_unemployment_rate = data['regional_unemployment_rate']
+    regional_risk = geographic_location_simulation(credit_score, region, housing_market_trends, regional_unemployment_rate)
+    return jsonify(regional_risk=regional_risk)
 
+def geographic_location_simulation(credit_score, region, housing_market_trends, regional_unemployment_rate):
+    region_factor = 1.2 if region == 'urban' else 1.0 if region == 'suburban' else 0.8
+    market_factor = housing_market_trends / 10
+    unemployment_factor = regional_unemployment_rate / 10
+    regional_risk = (region_factor + market_factor - unemployment_factor) * (credit_score / 850)
+    return {'risk_score': regional_risk, 'region_factor': region_factor, 'market_factor': market_factor, 'unemployment_factor': unemployment_factor}
 
-# Sixth API
+# API 6: Age and Demographics Simulation
 @app.route('/simulate_age_demographics', methods=['POST'])
 def simulate_age_demographics():
     data = request.get_json()
-    
     credit_score = data['credit_score']
-    age_group = data['age_group']  # e.g., '18-25', '26-35', '36-45', '46-55', '56+'
-    education_level = data['education_level']  # e.g., 'high school', 'bachelor', 'master', 'phd'
-    marital_status = data['marital_status']  # single, married, divorced, widowed
-    
-    def age_demographics_simulation(credit_score, age_group, education_level, marital_status):
-        results = []
-        base_default_rate = 0.05
-        age_factor = {'18-25': 1.2, '26-35': 1, '36-45': 0.9, '46-55': 0.8, '56+': 0.7}
-        education_factor = {'high school': 1.2, 'bachelor': 1, 'master': 0.8, 'phd': 0.7}
-        marital_factor = {'single': 1.1, 'married': 1, 'divorced': 1.3, 'widowed': 1.2}
-        for _ in range(100):
-            variability = random.gauss(0, 0.01)
-            adjusted_default_rate = base_default_rate * (650 / credit_score) * age_factor[age_group] * education_factor[education_level] * marital_factor[marital_status] + variability
-            results.append(max(0, min(1, adjusted_default_rate)))
-        return sum(results) / len(results)
-    
-    default_probability = age_demographics_simulation(credit_score, age_group, education_level, marital_status)
-    return jsonify(default_probability=default_probability)
+    age_group = data['age_group']
+    education_level = data['education_level']
+    marital_status = data['marital_status']
+    demographic_impact = age_demographics_simulation(credit_score, age_group, education_level, marital_status)
+    return jsonify(demographic_impact=demographic_impact)
 
+def age_demographics_simulation(credit_score, age_group, education_level, marital_status):
+    age_factor = 1.1 if age_group in ['36-45', '46-55'] else 1.0 if age_group in ['26-35', '56+'] else 0.9
+    education_factor = 1.2 if education_level in ['master', 'phd'] else 1.0 if education_level == 'bachelor' else 0.8
+    marital_factor = 1.1 if marital_status == 'married' else 1.0 if marital_status == 'single' else 0.9
+    impact_score = (age_factor + education_factor + marital_factor) * (credit_score / 850)
+    return {'impact_score': impact_score, 'age_factor': age_factor, 'education_factor': education_factor, 'marital_factor': marital_factor}
 
-# Seventh API
+# API 7: Health and Insurance Simulation
 @app.route('/simulate_health_insurance', methods=['POST'])
 def simulate_health_insurance():
     data = request.get_json()
-    
     credit_score = data['credit_score']
-    health_conditions = data['health_conditions']  # scale of 1 to 10
-    health_insurance_type = data['health_insurance_type']  # e.g., 'private', 'public', 'none'
-    insurance_coverage_level = data['insurance_coverage_level']  # percentage
-    
-    def health_insurance_simulation(credit_score, health_conditions, health_insurance_type, insurance_coverage_level):
-        results = []
-        base_default_rate = 0.05
-        insurance_factor = {'private': 1, 'public': 1.1, 'none': 1.5}
-        for _ in range(100):
-            variability = random.gauss(0, 0.01)
-            adjusted_default_rate = base_default_rate * (650 / credit_score) * (10 / health_conditions) * insurance_factor[health_insurance_type] * (1 / insurance_coverage_level) + variability
-            results.append(max(0, min(1, adjusted_default_rate)))
-        return sum(results) / len(results)
-    
-    default_probability = health_insurance_simulation(credit_score, health_conditions, health_insurance_type, insurance_coverage_level)
-    return jsonify(default_probability=default_probability)
+    health_conditions = data['health_conditions']
+    health_insurance_type = data['health_insurance_type']
+    insurance_coverage_level = data['insurance_coverage_level']
+    health_risk = health_insurance_simulation(credit_score, health_conditions, health_insurance_type, insurance_coverage_level)
+    return jsonify(health_risk=health_risk)
 
+def health_insurance_simulation(credit_score, health_conditions, health_insurance_type, insurance_coverage_level):
+    condition_factor = (10 - health_conditions) / 10
+    insurance_factor = 1.2 if health_insurance_type == 'private' else 1.0 if health_insurance_type == 'public' else 0.8
+    coverage_factor = insurance_coverage_level / 100
+    health_risk_score = (condition_factor + insurance_factor + coverage_factor) * (credit_score / 850)
+    return {'health_risk_score': health_risk_score, 'condition_factor': condition_factor, 'insurance_factor': insurance_factor, 'coverage_factor': coverage_factor}
 
-if __name__ == '_main_':
-    app.run(debug=False)
+if __name__ == '__main__':
+    app.run(debug=True)
