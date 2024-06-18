@@ -155,7 +155,7 @@ def age_demographics_simulation(credit_score, age_group, education_level, marita
 # API 7: Health and Insurance Simulation
 @app.route('/simulate_health_insurance', methods=['POST'])
 def simulate_health_insurance():
-    data = request.get_json()
+    data = request.json
     credit_score = data['credit_score']
     health_conditions = data['health_conditions']
     health_insurance_type = data['health_insurance_type']
@@ -168,15 +168,8 @@ def health_insurance_simulation(credit_score, health_conditions, health_insuranc
     insurance_factor = 1.2 if health_insurance_type == 'private' else 1.0 if health_insurance_type == 'public' else 0.8
     coverage_factor = insurance_coverage_level / 100
     health_risk_score = (condition_factor + insurance_factor + coverage_factor) * (credit_score / 850)
-    return {
-        'health_risk_score': health_risk_score,
-        'condition_factor': condition_factor,
-        'insurance_factor': insurance_factor,
-        'coverage_factor': coverage_factor,
-        'health_conditions': health_conditions,
-        'health_insurance_type': health_insurance_type,
-        'insurance_coverage_level': insurance_coverage_level
-    }
+    return {'health_risk_score': health_risk_score, 'condition_factor': condition_factor, 'insurance_factor': insurance_factor, 'coverage_factor': coverage_factor}
+
 
 if __name__ == '__main__':
     app.run(debug=True)
