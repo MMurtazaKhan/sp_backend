@@ -29,14 +29,16 @@ def simulate_macroeconomic_factors():
     credit_score = data['credit_score']
     num_simulations = data.get('num_simulations', 1000)
     num_years = data.get('num_years', 5)
-    projected_credit_scores = macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years)
-    return jsonify(projected_credit_scores=projected_credit_scores)
+    projected_credit_scores, yearly_variance = macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years)
+    return jsonify(projected_credit_scores=projected_credit_scores, yearly_variance=yearly_variance)
 
 def macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_years):
-    results = []
+    yearly_scores_sum = [0] * num_years
+    yearly_scores_squared_sum = [0] * num_years
+    
     for _ in range(num_simulations):
         yearly_scores = []
-        for _ in range(num_years):
+        for year in range(num_years):
             unemployment_rate = random.uniform(0.03, 0.1)
             inflation_rate = random.uniform(0.01, 0.04)
             gdp_growth_rate = random.uniform(0.01, 0.05)
@@ -44,8 +46,15 @@ def macroeconomic_monte_carlo_simulation(credit_score, num_simulations, num_year
             variability = random.gauss(0, 0.01)
             adjusted_score = credit_score * (1 - macro_factor) + variability * 100
             yearly_scores.append(max(300, min(850, adjusted_score)))
-        results.append(yearly_scores)
-    return results
+        
+        for year in range(num_years):
+            yearly_scores_sum[year] += yearly_scores[year]
+            yearly_scores_squared_sum[year] += yearly_scores[year] ** 2
+
+    average_scores = [sum_value / num_simulations for sum_value in yearly_scores_sum]
+    variance_scores = [(squared_sum / num_simulations - (sum_value / num_simulations) ** 2) for squared_sum, sum_value in zip(yearly_scores_squared_sum, yearly_scores_sum)]
+    
+    return average_scores, variance_scores
 
 # API 3: Financial Behavior Simulation
 @app.route('/simulate_financial_behavior', methods=['POST'])
@@ -62,9 +71,11 @@ def financial_behavior_simulation(credit_score, spending_habits, payment_history
     categories = {'low': 0, 'medium': 0, 'high': 0}
     for _ in range(100):
         risk_score = (credit_score / 850) * 0.4 + (payment_history / 100) * 0.3 - (debt_to_income_ratio / 100) * 0.2 + (spending_habits / 10) * 0.1
-        if risk_score > 0.7:
+        variability = random.gauss(0, 0.05)  # Added variability
+        adjusted_risk_score = risk_score + variability
+        if adjusted_risk_score > 0.7:
             categories['low'] += 1
-        elif risk_score > 0.4:
+        elif adjusted_risk_score > 0.4:
             categories['medium'] += 1
         else:
             categories['high'] += 1
@@ -86,10 +97,10 @@ def employment_status_simulation(credit_score, job_stability, income_level, empl
     base_growth_rate = 0.02  # Base growth rate of income per year
     stability_factor = job_stability / 10  # Job stability affects income stability
     type_factor = 1 if employment_type == 'full-time' else 0.8 if employment_type == 'part-time' else 1.2 if employment_type == 'self-employed' else 0.5
-    for _ in range(5):  # Simulate income for 5 years
+    for year in range(5):  # Simulate income for 5 years
         growth_rate = base_growth_rate * stability_factor * type_factor
         income_level += income_level * growth_rate
-        income_projection.append(income_level)
+        income_projection.append({'year': year + 1, 'income': income_level})
     return income_projection
 
 # API 5: Geographic Location Simulation
@@ -107,8 +118,13 @@ def geographic_location_simulation(credit_score, region, housing_market_trends, 
     region_factor = 1.2 if region == 'urban' else 1.0 if region == 'suburban' else 0.8
     market_factor = housing_market_trends / 10
     unemployment_factor = regional_unemployment_rate / 10
-    regional_risk = (region_factor + market_factor - unemployment_factor) * (credit_score / 850)
-    return {'risk_score': regional_risk, 'region_factor': region_factor, 'market_factor': market_factor, 'unemployment_factor': unemployment_factor}
+    risk_score = (credit_score / 850) * 0.4 + region_factor * 0.3 + market_factor * 0.2 - unemployment_factor * 0.1
+    return {
+        'risk_score': risk_score,
+        'region_factor': region_factor,
+        'market_factor': market_factor,
+        'unemployment_factor': unemployment_factor
+    }
 
 # API 6: Age and Demographics Simulation
 @app.route('/simulate_age_demographics', methods=['POST'])
@@ -126,7 +142,15 @@ def age_demographics_simulation(credit_score, age_group, education_level, marita
     education_factor = 1.2 if education_level in ['master', 'phd'] else 1.0 if education_level == 'bachelor' else 0.8
     marital_factor = 1.1 if marital_status == 'married' else 1.0 if marital_status == 'single' else 0.9
     impact_score = (age_factor + education_factor + marital_factor) * (credit_score / 850)
-    return {'impact_score': impact_score, 'age_factor': age_factor, 'education_factor': education_factor, 'marital_factor': marital_factor}
+    return {
+        'impact_score': impact_score,
+        'age_factor': age_factor,
+        'education_factor': education_factor,
+        'marital_factor': marital_factor,
+        'age_group': age_group,
+        'education_level': education_level,
+        'marital_status': marital_status
+    }
 
 # API 7: Health and Insurance Simulation
 @app.route('/simulate_health_insurance', methods=['POST'])
@@ -144,7 +168,15 @@ def health_insurance_simulation(credit_score, health_conditions, health_insuranc
     insurance_factor = 1.2 if health_insurance_type == 'private' else 1.0 if health_insurance_type == 'public' else 0.8
     coverage_factor = insurance_coverage_level / 100
     health_risk_score = (condition_factor + insurance_factor + coverage_factor) * (credit_score / 850)
-    return {'health_risk_score': health_risk_score, 'condition_factor': condition_factor, 'insurance_factor': insurance_factor, 'coverage_factor': coverage_factor}
+    return {
+        'health_risk_score': health_risk_score,
+        'condition_factor': condition_factor,
+        'insurance_factor': insurance_factor,
+        'coverage_factor': coverage_factor,
+        'health_conditions': health_conditions,
+        'health_insurance_type': health_insurance_type,
+        'insurance_coverage_level': insurance_coverage_level
+    }
 
 if __name__ == '__main__':
     app.run(debug=True)
