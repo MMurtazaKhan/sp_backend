@@ -93,14 +93,22 @@ def simulate_employment_status():
     return jsonify(income_projection=income_projection)
 
 def employment_status_simulation(credit_score, job_stability, income_level, employment_type):
-    income_projection = []
     base_growth_rate = 0.02  # Base growth rate of income per year
     stability_factor = job_stability / 10  # Job stability affects income stability
     type_factor = 1 if employment_type == 'full-time' else 0.8 if employment_type == 'part-time' else 1.2 if employment_type == 'self-employed' else 0.5
+    income_projection = []
+    
     for year in range(5):  # Simulate income for 5 years
-        growth_rate = base_growth_rate * stability_factor * type_factor
-        income_level += income_level * growth_rate
+        yearly_income_projection = []
+        for _ in range(100):  # Monte Carlo iterations
+            growth_rate = base_growth_rate * stability_factor * type_factor
+            variability = random.gauss(0, 0.01)
+            adjusted_income = income_level * (1 + growth_rate + variability)
+            yearly_income_projection.append(adjusted_income)
+        avg_yearly_income = sum(yearly_income_projection) / 100
+        income_level = avg_yearly_income  # Update income level for the next year
         income_projection.append({'year': year + 1, 'income': income_level})
+    
     return income_projection
 
 # API 5: Geographic Location Simulation
@@ -118,9 +126,16 @@ def geographic_location_simulation(credit_score, region, housing_market_trends, 
     region_factor = 1.2 if region == 'urban' else 1.0 if region == 'suburban' else 0.8
     market_factor = housing_market_trends / 10
     unemployment_factor = regional_unemployment_rate / 10
-    risk_score = (credit_score / 850) * 0.4 + region_factor * 0.3 + market_factor * 0.2 - unemployment_factor * 0.1
+    risk_scores = []
+    
+    for _ in range(100):  # Monte Carlo iterations
+        variability = random.gauss(0, 0.01)
+        risk_score = (credit_score / 850) * 0.4 + region_factor * 0.3 + market_factor * 0.2 - unemployment_factor * 0.1 + variability
+        risk_scores.append(risk_score)
+    
+    avg_risk_score = sum(risk_scores) / 100
     return {
-        'risk_score': risk_score,
+        'risk_score': avg_risk_score,
         'region_factor': region_factor,
         'market_factor': market_factor,
         'unemployment_factor': unemployment_factor
@@ -141,9 +156,16 @@ def age_demographics_simulation(credit_score, age_group, education_level, marita
     age_factor = 1.1 if age_group in ['36-45', '46-55'] else 1.0 if age_group in ['26-35', '56+'] else 0.9
     education_factor = 1.2 if education_level in ['master', 'phd'] else 1.0 if education_level == 'bachelor' else 0.8
     marital_factor = 1.1 if marital_status == 'married' else 1.0 if marital_status == 'single' else 0.9
-    impact_score = (age_factor + education_factor + marital_factor) * (credit_score / 850)
+    impact_scores = []
+    
+    for _ in range(100):  # Monte Carlo iterations
+        variability = random.gauss(0, 0.01)
+        impact_score = (age_factor + education_factor + marital_factor) * (credit_score / 850) + variability
+        impact_scores.append(impact_score)
+    
+    avg_impact_score = sum(impact_scores) / 100
     return {
-        'impact_score': impact_score,
+        'impact_score': avg_impact_score,
         'age_factor': age_factor,
         'education_factor': education_factor,
         'marital_factor': marital_factor,
@@ -167,9 +189,15 @@ def health_insurance_simulation(credit_score, health_conditions, health_insuranc
     condition_factor = (10 - health_conditions) / 10
     insurance_factor = 1.2 if health_insurance_type == 'private' else 1.0 if health_insurance_type == 'public' else 0.8
     coverage_factor = insurance_coverage_level / 100
-    health_risk_score = (condition_factor + insurance_factor + coverage_factor) * (credit_score / 850)
-    return {'health_risk_score': health_risk_score, 'condition_factor': condition_factor, 'insurance_factor': insurance_factor, 'coverage_factor': coverage_factor}
-
+    health_risk_scores = []
+    
+    for _ in range(100):  # Monte Carlo iterations
+        variability = random.gauss(0, 0.01)
+        health_risk_score = (condition_factor + insurance_factor + coverage_factor) * (credit_score / 850) + variability
+        health_risk_scores.append(health_risk_score)
+    
+    avg_health_risk_score = sum(health_risk_scores) / 100
+    return {'health_risk_score': avg_health_risk_score, 'condition_factor': condition_factor, 'insurance_factor': insurance_factor, 'coverage_factor': coverage_factor}
 
 if __name__ == '__main__':
     app.run(debug=True)
